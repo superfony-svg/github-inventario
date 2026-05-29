@@ -1,0 +1,2 @@
+# github-inventario
+inventario-dogma
