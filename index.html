@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" translate="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,32 +7,34 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #f4f4f4; text-align: center; }
-        .container { max-width: 400px; margin: auto; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        #reader { width: 100%; height: 200px; background: black; border-radius: 8px; margin-bottom: 10px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #ccc; border-radius: 5px; font-size: 18px; box-sizing: border-box; text-align: center; }
-        button { width: 100%; padding: 15px; margin: 5px 0; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; color: white; font-size: 16px; transition: background 0.2s; }
-        .btn-reg { background: #28a745; }
-        .btn-exp { background: #ffc107; color: black; }
-        .btn-del { background: #dc3545; }
-        table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 10px; font-size: 14px; text-align: left; }
-        th { background: #eee; }
+        body { font-family: Arial, sans-serif; margin: 15px; background-color: #f4f4f9; color: #333; text-align: center; }
+        .container { max-width: 450px; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #reader { width: 100%; border: 3px solid #007bff; border-radius: 8px; overflow: hidden; background-color: #000; margin-bottom: 10px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 18px; text-align: center; }
+        button { width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-add { background-color: #28a745; }
+        .btn-excel { background-color: #ffc107; color: black; }
+        .btn-clear { background-color: #dc3545; }
+        table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
     </style>
 </head>
 <body>
-
 <div class="container">
     <h1>Inventario Dogma</h1>
     <div id="reader"></div>
-    <input type="text" id="codigo" placeholder="Escanea código..." readonly>
+    <label><b>Código:</b></label>
+    <input type="text" id="codigo" placeholder="Esperando escaneo..." readonly>
+    <label><b>Cantidad:</b></label>
     <input type="number" id="cantidad" value="1">
-    <button class="btn-reg" onclick="registrar()">📥 Registrar</button>
-    <button class="btn-exp" onclick="exportar()">🍏 Exportar Excel</button>
-    <button class="btn-del" onclick="borrar()">🧹 Borrar Todo</button>
     
-    <h3>Registros únicos: <span id="total">0</span></h3>
-    <table id="tabla">
+    <button class="btn-add" onclick="registrar()">📥 Registrar</button>
+    <button class="btn-excel" onclick="exportar()">🍏 Exportar a EXCEL</button>
+    <button class="btn-clear" onclick="borrarTodo()">🧹 Borrar todo</button>
+
+    <h3>Registros: <span id="total">0</span></h3>
+    <table id="tablaInventario">
         <thead><tr><th>Código</th><th>Cant.</th></tr></thead>
         <tbody></tbody>
     </table>
@@ -40,6 +42,7 @@
 
 <script>
     let inventario = JSON.parse(localStorage.getItem('datos_inv')) || [];
+    let html5QrcodeScanner;
 
     function pitido(tipo) {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -53,8 +56,35 @@
         osc.stop(ctx.currentTime + 0.2);
     }
 
+    function onScanSuccess(decodedText) {
+        document.getElementById('codigo').value = decodedText;
+        pitido('scan');
+        document.getElementById('cantidad').focus();
+        document.getElementById('cantidad').select();
+    }
+
+    function registrar() {
+        let cod = document.getElementById('codigo').value.trim();
+        let cant = parseInt(document.getElementById('cantidad').value);
+        if (!cod || isNaN(cant)) return;
+
+        let existente = inventario.find(item => item.Codigo === cod);
+        if (existente) {
+            existente.Cantidad = parseInt(existente.Cantidad) + cant;
+        } else {
+            inventario.push({ Codigo: cod, Cantidad: cant });
+        }
+
+        localStorage.setItem('datos_inv', JSON.stringify(inventario));
+        pitido('confirm');
+        document.getElementById('cantidad').blur();
+        document.getElementById('codigo').value = '';
+        document.getElementById('cantidad').value = '1';
+        actualizarTabla();
+    }
+
     function actualizarTabla() {
-        let tbody = document.querySelector('#tabla tbody');
+        let tbody = document.querySelector('#tablaInventario tbody');
         tbody.innerHTML = '';
         [...inventario].reverse().forEach(item => {
             tbody.innerHTML += `<tr><td>${item.Codigo}</td><td>${item.Cantidad}</td></tr>`;
@@ -62,56 +92,29 @@
         document.getElementById('total').innerText = inventario.length;
     }
 
-    function registrar() {
-        let cod = document.getElementById('codigo').value.trim();
-        let cant = parseInt(document.getElementById('cantidad').value);
-        if (!cod || isNaN(cant)) return alert("Escanea algo primero");
-        
-        // Lógica de suma inteligente
-        let existente = inventario.find(item => item.Codigo === cod);
-        if (existente) {
-            existente.Cantidad = parseInt(existente.Cantidad) + cant;
-        } else {
-            inventario.push({ Codigo: cod, Cantidad: cant });
-        }
-        
-        localStorage.setItem('datos_inv', JSON.stringify(inventario));
-        
-        // Feedback
-        pitido('confirm');
-        let btn = document.querySelector('.btn-reg');
-        btn.style.background = '#155724'; 
-        setTimeout(() => btn.style.background = '#28a745', 200);
-
-        document.getElementById('cantidad').blur();
-        document.getElementById('codigo').value = '';
-        document.getElementById('cantidad').value = '1';
-        actualizarTabla();
-    }
-
     function exportar() {
-        if(inventario.length === 0) return alert("Nada que exportar");
         let wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(inventario), "Inventario");
         XLSX.writeFile(wb, "Inventario_Dogma.xlsx");
     }
 
-    function borrar() {
-        if(confirm("¿Borrar todo el listado?")) {
+    function borrarTodo() {
+        if(confirm('¿Borrar todo?')) {
             inventario = [];
             localStorage.removeItem('datos_inv');
             actualizarTabla();
         }
     }
 
-    actualizarTabla();
-    let scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 200 });
-    scanner.render((text) => {
-        document.getElementById('codigo').value = text;
-        pitido('scan');
-        document.getElementById('cantidad').focus();
-        document.getElementById('cantidad').select();
-    });
+    window.onload = function() {
+        actualizarTabla();
+        html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+            fps: 10, 
+            qrbox: { width: 300, height: 150 }, 
+            rememberLastUsedCamera: true 
+        });
+        html5QrcodeScanner.render(onScanSuccess);
+    };
 </script>
 </body>
 </html>
