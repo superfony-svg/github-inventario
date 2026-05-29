@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario Dogma Libros (Audio Alto)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 15px; background-color: #f4f4f9; color: #333; }
+        h1 { text-align: center; color: #0056b3; margin-bottom: 5px; font-size: 22px; }
+        .subtitle { text-align: center; color: #666; margin-top: 0; margin-bottom: 15px; font-size: 13px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #reader { width: 100%; border: 3px solid #007bff; border-radius: 8px; overflow: hidden; background-color: #000; margin-bottom: 10px; }
+        button { width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        .btn-add { background-color: #28a745; color: white; padding: 16px; font-size: 18px; }
+        .btn-excel { background-color: #ffc107; color: black; margin-top: 20px; }
+        .btn-clear { background-color: #fff; color: #dc3545; border: 1px solid #dc3545; padding: 6px; font-size: 13px; margin-top: 15px; }
+        input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 2px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 18px; text-align: center; }
+        .campo-ubicacion-bloque { background: #fff3cd; padding: 12px; border-radius: 5px; border: 1px solid #ffeeba; margin-bottom: 15px; }
+        table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Inventario Dogma Libros</h1>
+    <div id="reader"></div>
+    <label for="codigo"><b>Código:</b></label>
+    <input type="text" id="codigo" autocomplete="off">
+    <label for="cantidad"><b>Cantidad:</b></label>
+    <input type="number" id="cantidad" value="1">
+    <div class="campo-ubicacion-bloque">
+        <label for="ubicacionInput"><b>Ubicación:</b></label>
+        <input type="text" id="ubicacionInput">
+    </div>
+    <button class="btn-add" onclick="agregarArticulo()">📥 Registrar</button>
+    <button class="btn-excel" onclick="exportarExcel()">🍏 Exportar a EXCEL</button>
+    <button class="btn-clear" onclick="borrarTodo()">🧹 Borrar todo</button>
+    <table id="tablaInventario"><tbody></tbody></table>
+</div>
+
+<script>
+    let inventario = JSON.parse(localStorage.getItem('inventario_final_v4')) || [];
+    let html5QrcodeScanner;
+
+    // Función de sonido con volumen ALTO (0.8)
+    function reproducirSonido(tipo) {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'square'; // 'square' suena más fuerte/robusto que 'sine'
+        osc.frequency.setValueAtTime(tipo === 'exito' ? 880 : 440, audioCtx.currentTime);
+        
+        // Volumen ajustado a 0.8
+        gain.gain.setValueAtTime(0.8, audioCtx.currentTime); 
+        
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    function onScanSuccess(decodedText) {
+        reproducirSonido('exito');
+        document.getElementById('codigo').value = decodedText;
+        document.getElementById('cantidad').focus();
+    }
+
+    function agregarArticulo() {
+        reproducirSonido('confirmacion');
+        // ... resto de tu lógica de guardado
+        let cod = document.getElementById('codigo').value;
+        let cant = document.getElementById('cantidad').value;
+        let ubi = document.getElementById('ubicacionInput').value;
+        inventario.push({ Codigo: cod, Cantidad: cant, Ubicacion: ubi });
+        localStorage.setItem('inventario_final_v4', JSON.stringify(inventario));
+        alert("Registrado");
+    }
+
+    // Inicialización del escáner
+    html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
+</script>
+</body>
+</html>
