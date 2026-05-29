@@ -7,26 +7,28 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 15px; background-color: #f4f4f9; color: #333; text-align: center; }
-        .container { max-width: 450px; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        #reader { width: 100%; border: 3px solid #007bff; border-radius: 8px; overflow: hidden; background-color: #000; margin-bottom: 10px; }
-        input { width: 100%; padding: 12px; margin: 8px 0; border: 2px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 18px; text-align: center; }
-        button { width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; color: white; }
+        body { font-family: Arial, sans-serif; margin: 10px; background-color: #f4f4f9; color: #333; text-align: center; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        /* AQUÍ FIJAMOS EL TAMAÑO DE LA CÁMARA PARA QUE NO TAPE NADA */
+        #reader { width: 100%; max-height: 250px; overflow: hidden; border: 2px solid #007bff; border-radius: 8px; margin-bottom: 10px; }
+        
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 2px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; text-align: center; }
+        button { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
         .btn-add { background-color: #28a745; }
         .btn-excel { background-color: #ffc107; color: black; }
         .btn-clear { background-color: #dc3545; }
-        table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 14px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        
+        table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>Inventario Dogma</h1>
     <div id="reader"></div>
-    <label><b>Código:</b></label>
+    
     <input type="text" id="codigo" placeholder="Esperando escaneo..." readonly>
-    <label><b>Cantidad:</b></label>
     <input type="number" id="cantidad" value="1">
     
     <button class="btn-add" onclick="registrar()">📥 Registrar</button>
@@ -42,7 +44,6 @@
 
 <script>
     let inventario = JSON.parse(localStorage.getItem('datos_inv')) || [];
-    let html5QrcodeScanner;
 
     function pitido(tipo) {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -108,9 +109,10 @@
 
     window.onload = function() {
         actualizarTabla();
-        html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+        // Configuramos el escáner con un tamaño de ventana limitado
+        let html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
             fps: 10, 
-            qrbox: { width: 300, height: 150 }, 
+            qrbox: { width: 200, height: 100 }, 
             rememberLastUsedCamera: true 
         });
         html5QrcodeScanner.render(onScanSuccess);
