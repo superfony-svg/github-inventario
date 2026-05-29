@@ -10,8 +10,11 @@
         body { font-family: Arial, sans-serif; margin: 10px; background-color: #f4f4f9; color: #333; text-align: center; }
         .container { max-width: 400px; margin: 0 auto; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         
-        /* AQUÍ FIJAMOS EL TAMAÑO DE LA CÁMARA PARA QUE NO TAPE NADA */
-        #reader { width: 100%; max-height: 250px; overflow: hidden; border: 2px solid #007bff; border-radius: 8px; margin-bottom: 10px; }
+        /* CORTAMOS EL EXCESO DEL ESCÁNER */
+        #reader { width: 100%; border: 2px solid #007bff; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+        #reader__scan_region { width: 100% !important; }
+        #reader__dashboard { display: none !important; } /* Oculta botones de la librería */
+        #reader__status_span { display: none !important; } /* Oculta mensajes técnicos */
         
         input { width: 100%; padding: 10px; margin: 5px 0; border: 2px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; text-align: center; }
         button { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
@@ -109,11 +112,12 @@
 
     window.onload = function() {
         actualizarTabla();
-        // Configuramos el escáner con un tamaño de ventana limitado
+        // Configuramos la cámara para ser lo más minimalista posible
         let html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
             fps: 10, 
-            qrbox: { width: 200, height: 100 }, 
-            rememberLastUsedCamera: true 
+            qrbox: { width: 250, height: 100 }, 
+            rememberLastUsedCamera: true,
+            showTorchButtonIfSupported: true // Añade botón de linterna si el móvil lo permite
         });
         html5QrcodeScanner.render(onScanSuccess);
     };
