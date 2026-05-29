@@ -10,10 +10,7 @@
         body { font-family: sans-serif; padding: 10px; background-color: #f4f4f9; color: #333; text-align: center; }
         .container { max-width: 400px; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         
-        /* Ajustamos el contenedor del escáner a un formato apaisado */
         #reader { width: 100% !important; border: 2px solid #007bff; border-radius: 8px; margin: 0 auto 15px auto; overflow: hidden; background: #000; min-height: 150px; }
-        
-        /* Ocultamos los menús de la librería para dejar solo la cámara */
         #reader__scan_region { border: none !important; margin: 0 auto; }
         #reader__dashboard, #reader__status_span, #reader__camera_selection_container, #reader__file_selection_container { display: none !important; }
         
@@ -22,32 +19,59 @@
         .btn-reg { background-color: #28a745; }
         .btn-excel { background-color: #ffc107; color: black; }
         .btn-del { background-color: #dc3545; }
+        .btn-config { background-color: #007bff; }
         
-        table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 14px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        #ubicacionContainer { display: none; background: #fff3cd; padding: 10px; border-radius: 5px; border: 1px dashed #cca300; margin-bottom: 10px; }
     </style>
 </head>
 <body>
+
 <div class="container">
     <h1>Inventario Dogma</h1>
-    <div id="reader"></div>
     
-    <input type="text" id="codigo" placeholder="Escaneando..." readonly>
-    <input type="number" id="cantidad" value="1">
-    
-    <button class="btn-reg" onclick="registrar()">📥 Registrar</button>
-    <button class="btn-excel" onclick="exportar()">🍏 Exportar a EXCEL</button>
-    <button class="btn-del" onclick="borrarTodo()">🧹 Borrar todo</button>
+    <div id="config">
+        <p>¿Vas a añadir ubicación en este lote?</p>
+        <button class="btn-config" onclick="configurarUbicacion(true)">Sí</button>
+        <button class="btn-del" onclick="configurarUbicacion(false)">No</button>
+    </div>
 
-    <h3>Registros únicos: <span id="total">0</span></h3>
-    <table id="tablaInventario">
-        <thead><tr><th>Código</th><th>Cant.</th></tr></thead>
-        <tbody></tbody>
-    </table>
+    <div id="app" style="display:none;">
+        <div id="reader"></div>
+        <div id="ubicacionContainer">
+            <input type="text" id="ubicacionInput" placeholder="Estantería actual...">
+        </div>
+        <input type="text" id="codigo" placeholder="Escaneando..." readonly>
+        <input type="number" id="cantidad" value="1">
+        <button class="btn-reg" onclick="registrar()">📥 Registrar</button>
+        <button class="btn-excel" onclick="exportar()">🍏 Exportar a EXCEL</button>
+        <button class="btn-del" onclick="borrarTodo()">🧹 Borrar todo</button>
+
+        <h3>Registros únicos: <span id="total">0</span></h3>
+        <table id="tablaInventario">
+            <thead><tr><th>Código</th><th>Ubicación</th><th>Cant.</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
 
 <script>
     let inventario = JSON.parse(localStorage.getItem('datos_inv')) || [];
+    let usandoUbicacion = false;
+
+    function configurarUbicacion(estado) {
+        usandoUbicacion = estado;
+        document.getElementById('config').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        if (estado) document.getElementById('ubicacionContainer').style.display = 'block';
+        
+        // Iniciar cámara tras elegir configuración
+        let html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
+            fps: 10, 
+            qrbox: { width: 300, height: 80 }, 
+            rememberLastUsedCamera: true
+        });
+        html5QrcodeScanner.render(onScanSuccess);
+    }
 
     function pitido(tipo) {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -71,17 +95,21 @@
     function registrar() {
         let cod = document.getElementById('codigo').value.trim();
         let cant = parseInt(document.getElementById('cantidad').value);
+        let ubi = usandoUbicacion ? document.getElementById('ubicacionInput').value : "N/A";
+        
         if (!cod || isNaN(cant)) return;
 
-        let existente = inventario.find(item => item.Codigo === cod);
+        // Suma inteligente basada en código Y ubicación
+        let existente = inventario.find(item => item.Codigo === cod && item.Ubicacion === ubi);
         if (existente) {
             existente.Cantidad = parseInt(existente.Cantidad) + cant;
         } else {
-            inventario.push({ Codigo: cod, Cantidad: cant });
+            inventario.push({ Codigo: cod, Ubicacion: ubi, Cantidad: cant });
         }
+        
         localStorage.setItem('datos_inv', JSON.stringify(inventario));
         pitido('confirm');
-        document.getElementById('cantidad').blur();
+        
         document.getElementById('codigo').value = '';
         document.getElementById('cantidad').value = '1';
         actualizarTabla();
@@ -91,7 +119,7 @@
         let tbody = document.querySelector('#tablaInventario tbody');
         tbody.innerHTML = '';
         [...inventario].reverse().forEach(item => {
-            tbody.innerHTML += `<tr><td>${item.Codigo}</td><td>${item.Cantidad}</td></tr>`;
+            tbody.innerHTML += `<tr><td>${item.Codigo}</td><td>${item.Ubicacion}</td><td>${item.Cantidad}</td></tr>`;
         });
         document.getElementById('total').innerText = inventario.length;
     }
@@ -106,21 +134,9 @@
         if(confirm('¿Borrar todo?')) {
             inventario = [];
             localStorage.removeItem('datos_inv');
-            actualizarTabla();
+            location.reload(); // Reinicia la app para volver a elegir configuración
         }
     }
-
-    window.onload = function() {
-        actualizarTabla();
-        // Configuración apaisada: 300px ancho x 80px alto para códigos de barras
-        let html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
-            fps: 10, 
-            qrbox: { width: 300, height: 80 }, 
-            aspectRatio: 1.0,
-            rememberLastUsedCamera: true
-        });
-        html5QrcodeScanner.render(onScanSuccess);
-    };
 </script>
 </body>
 </html>
