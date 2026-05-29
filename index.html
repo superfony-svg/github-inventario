@@ -10,10 +10,11 @@
         body { font-family: sans-serif; padding: 10px; background-color: #f4f4f9; color: #333; text-align: center; }
         .container { max-width: 400px; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         
-        /* ESTILOS PARA CENTRAR Y LIMPIAR EL ESCÁNER */
-        #reader { width: 100% !important; border: 2px solid #007bff; border-radius: 8px; margin: 0 auto 15px auto; overflow: hidden; background: #000; }
+        /* Ajustamos el contenedor del escáner a un formato apaisado */
+        #reader { width: 100% !important; border: 2px solid #007bff; border-radius: 8px; margin: 0 auto 15px auto; overflow: hidden; background: #000; min-height: 150px; }
+        
+        /* Ocultamos los menús de la librería para dejar solo la cámara */
         #reader__scan_region { border: none !important; margin: 0 auto; }
-        /* Ocultamos absolutamente todo lo que no sea el video de la cámara */
         #reader__dashboard, #reader__status_span, #reader__camera_selection_container, #reader__file_selection_container { display: none !important; }
         
         input { width: 100%; padding: 12px; margin: 5px 0; border: 2px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 18px; text-align: center; }
@@ -111,10 +112,11 @@
 
     window.onload = function() {
         actualizarTabla();
-        // Inicialización simplificada
+        // Configuración apaisada: 300px ancho x 80px alto para códigos de barras
         let html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
             fps: 10, 
-            qrbox: { width: 250, height: 100 }, 
+            qrbox: { width: 300, height: 80 }, 
+            aspectRatio: 1.0,
             rememberLastUsedCamera: true
         });
         html5QrcodeScanner.render(onScanSuccess);
