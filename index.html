@@ -1,1 +1,116 @@
+<!DOCTYPE html>
+<html lang="es" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventario Dogma Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body { font-family: sans-serif; padding: 10px; background-color: #f4f4f9; text-align: center; }
+        .container { max-width: 450px; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        /* Contenedor fluido, ocupa el ancho disponible */
+        #reader { 
+            width: 100%; 
+            background: #000; 
+            border-radius: 8px; 
+            overflow: hidden; 
+            margin-bottom: 15px;
+            position: relative;
+        }
 
+        /* Video ocupa todo el espacio del contenedor */
+        #reader video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            transform: rotate(90deg); 
+            transform-origin: center;
+        }
+        
+        input { width: 100%; padding: 12px; margin: 5px 0; border: 2px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 18px; text-align: center; }
+        button { width: 100%; padding: 15px; margin: 5px 0; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
+        .btn-reg { background-color: #28a745; }
+        .btn-excel { background-color: #ffc107; color: black; }
+        .btn-clear { background-color: #dc3545; }
+        
+        table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 13px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Inventario Dogma</h1>
+    <div id="reader"></div>
+    
+    <input type="text" id="codigo" placeholder="Escaneando..." readonly>
+    <input type="number" id="cantidad" value="1">
+    
+    <button class="btn-reg" onclick="registrar()">📥 Registrar</button>
+    <button class="btn-excel" onclick="exportar()">🍏 Exportar a EXCEL</button>
+    <button class="btn-clear" onclick="borrarTodo()">🧹 Borrar todo</button>
+
+    <h3>Registros: <span id="total">0</span></h3>
+    <table id="tablaInventario">
+        <thead><tr><th>Código</th><th>Cant.</th></tr></thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<script>
+    let inventario = JSON.parse(localStorage.getItem('datos_inv')) || [];
+    const html5QrCode = new Html5Qrcode("reader");
+
+    window.onload = function() {
+        actualizarTabla();
+        
+        // QRBOX AMPLIADO: Casi todo el ancho disponible
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            { 
+                fps: 10, 
+                qrbox: { width: 350, height: 150 } 
+            },
+            (decodedText) => {
+                document.getElementById('codigo').value = decodedText;
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                osc.frequency.value = 880; 
+                osc.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 0.1);
+                document.getElementById('cantidad').focus();
+            }
+        ).catch(err => { console.error(err); });
+    };
+
+    // ... funciones registrar, actualizarTabla, exportar, borrarTodo iguales ...
+    function registrar() {
+        let cod = document.getElementById('codigo').value.trim();
+        let cant = parseInt(document.getElementById('cantidad').value);
+        if (!cod || isNaN(cant)) return;
+        let existente = inventario.find(item => item.Codigo === cod);
+        if (existente) { existente.Cantidad += cant; } else { inventario.push({ Codigo: cod, Cantidad: cant }); }
+        localStorage.setItem('datos_inv', JSON.stringify(inventario));
+        document.getElementById('codigo').value = '';
+        document.getElementById('cantidad').value = '1';
+        actualizarTabla();
+    }
+    function actualizarTabla() {
+        let tbody = document.querySelector('#tablaInventario tbody');
+        tbody.innerHTML = '';
+        [...inventario].reverse().forEach(item => { tbody.innerHTML += `<tr><td>${item.Codigo}</td><td>${item.Cantidad}</td></tr>`; });
+        document.getElementById('total').innerText = inventario.length;
+    }
+    function exportar() {
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(inventario), "Inventario");
+        XLSX.writeFile(wb, "Inventario_Dogma.xlsx");
+    }
+    function borrarTodo() {
+        if(confirm('¿Borrar todo?')) { inventario = []; localStorage.removeItem('datos_inv'); location.reload(); }
+    }
+</script>
+</body>
+</html>
