@@ -7,23 +7,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        body { font-family: sans-serif; padding: 10px; background-color: #f4f4f9; color: #333; text-align: center; }
-        .container { max-width: 400px; margin: 0 auto; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        body { font-family: Arial, sans-serif; margin: 10px; background-color: #f4f4f9; color: #333; text-align: center; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         
-        /* Ajustamos el contenedor del escáner a un formato apaisado */
+        /* Formato apaisado estable */
         #reader { width: 100% !important; border: 2px solid #007bff; border-radius: 8px; margin: 0 auto 15px auto; overflow: hidden; background: #000; min-height: 150px; }
-        
-        /* Ocultamos los menús de la librería para dejar solo la cámara */
         #reader__scan_region { border: none !important; margin: 0 auto; }
         #reader__dashboard, #reader__status_span, #reader__camera_selection_container, #reader__file_selection_container { display: none !important; }
         
-        input { width: 100%; padding: 12px; margin: 5px 0; border: 2px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 18px; text-align: center; }
-        button { width: 100%; padding: 15px; margin: 5px 0; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
+        input { width: 100%; padding: 10px; margin: 5px 0; border: 2px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; text-align: center; }
+        button { width: 100%; padding: 12px; margin: 5px 0; border: none; border-radius: 5px; font-size: 16px; font-weight: bold; color: white; cursor: pointer; }
         .btn-reg { background-color: #28a745; }
         .btn-excel { background-color: #ffc107; color: black; }
-        .btn-del { background-color: #dc3545; }
+        .btn-clear { background-color: #dc3545; }
         
-        table { width: 100%; margin-top: 15px; border-collapse: collapse; font-size: 14px; }
+        table { width: 100%; margin-top: 10px; border-collapse: collapse; font-size: 13px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     </style>
 </head>
@@ -32,14 +30,14 @@
     <h1>Inventario Dogma</h1>
     <div id="reader"></div>
     
-    <input type="text" id="codigo" placeholder="Escaneando..." readonly>
+    <input type="text" id="codigo" placeholder="Esperando escaneo..." readonly>
     <input type="number" id="cantidad" value="1">
     
     <button class="btn-reg" onclick="registrar()">📥 Registrar</button>
     <button class="btn-excel" onclick="exportar()">🍏 Exportar a EXCEL</button>
-    <button class="btn-del" onclick="borrarTodo()">🧹 Borrar todo</button>
+    <button class="btn-clear" onclick="borrarTodo()">🧹 Borrar todo</button>
 
-    <h3>Registros únicos: <span id="total">0</span></h3>
+    <h3>Registros: <span id="total">0</span></h3>
     <table id="tablaInventario">
         <thead><tr><th>Código</th><th>Cant.</th></tr></thead>
         <tbody></tbody>
@@ -79,6 +77,7 @@
         } else {
             inventario.push({ Codigo: cod, Cantidad: cant });
         }
+
         localStorage.setItem('datos_inv', JSON.stringify(inventario));
         pitido('confirm');
         document.getElementById('cantidad').blur();
@@ -112,11 +111,9 @@
 
     window.onload = function() {
         actualizarTabla();
-        // Configuración apaisada: 300px ancho x 80px alto para códigos de barras
         let html5QrcodeScanner = new Html5QrcodeScanner("reader", { 
             fps: 10, 
             qrbox: { width: 300, height: 80 }, 
-            aspectRatio: 1.0,
             rememberLastUsedCamera: true
         });
         html5QrcodeScanner.render(onScanSuccess);
